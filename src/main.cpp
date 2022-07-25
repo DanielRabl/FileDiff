@@ -114,6 +114,7 @@ void check(std::string path_str1, std::string path_str2) {
 
 	bool result = true;
 	if (path1.is_file() && path2.is_file()) {
+		qpl::println("\n#1 = ", path1, "\n#2 = ", path2);
 		result = result && check_diff(path1, path2);
 	}
 	else if (path1.is_directory() && path2.is_directory()) {
@@ -184,7 +185,6 @@ void check(std::string path_str1, std::string path_str2) {
 		qpl::println();
 		qpl::println(">>> there were differences.");
 	}
-	qpl::system_pause();
 }
 
 int main(int argc, char** argv) try {
@@ -201,13 +201,24 @@ int main(int argc, char** argv) try {
 	for (int i = 1; i < argc; ++i) {
 		args[i - 1] = argv[i];
 	}
-	if (args.size() != 2) {
-		qpl::println("drag 2 files / directories onto this executable");
+	if (args.empty()) {
+		qpl::println("drag files / directories onto this executable for comparison.");
 		qpl::system_pause();
 	}
-	check(args[0], args[1]);
+	else if (args.size() % 2) {
+		qpl::println("drag an even number of files / directories onto this executable for comparison.");
+		qpl::system_pause();
+	}
+	for (qpl::u32 i = 0u; i < args.size() / 2; ++i) {
+		if (i) {
+			qpl::println();
+			qpl::println_repeat("- ", 50);
+			qpl::println();
+		}
+		check(args[i], args[args.size() / 2 + i]);
+	}
 
-	qpl::println("hello world!");
+	qpl::system_pause();
 }
 catch (std::exception& any) {
 	qpl::println("caught exception:\n", any.what());
