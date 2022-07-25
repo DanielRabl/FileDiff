@@ -1,5 +1,11 @@
 #include <qpl/qpl.hpp>
 
+namespace cfg {
+	qpl::size max_lines = 10u;
+	qpl::size max_line_chars = 60u;
+	qpl::size max_total_chars = 10'000u;
+}
+
 constexpr bool is_character_visible(char c) {
 	return qpl::u8_cast(c) >= 32;
 }
@@ -23,6 +29,8 @@ bool check_diff(qpl::filesys::path path1, qpl::filesys::path path2) {
 			qpl::size start = 0u;
 			qpl::size end = 0u;
 			std::ostringstream stream;
+			qpl::size found_ctr = 0u;
+			qpl::size found_max = 10u;
 
 			auto stop = qpl::min(read1.length(), read2.length());
 			for (qpl::size i = 0u; i < stop; i++) {
@@ -50,20 +58,46 @@ bool check_diff(qpl::filesys::path path1, qpl::filesys::path path2) {
 						sequence = false;
 
 						stream << qpl::to_string("\nNOT EQUAL at ", start, '\n');
+
+
+						std::string sub1;
+						std::string sub2;
 						if (visible) {
-							stream << qpl::to_string("...", str1.substr(0, 600), "...\n");
-							stream << qpl::to_string("...", str2.substr(0, 600), "...\n");
+							sub1 = str1.substr(0, cfg::max_line_chars);
+							sub2 = str2.substr(0, cfg::max_line_chars);
 						}
 						else {
-							stream << qpl::to_string("...", qpl::hex_string(str1.substr(0, 300)), "...\n");
-							stream << qpl::to_string("...", qpl::hex_string(str2.substr(0, 300)), "...\n");
+							sub1 = qpl::hex_string(str1.substr(0, cfg::max_line_chars / 2));
+							sub2 = qpl::hex_string(str2.substr(0, cfg::max_line_chars / 2));
+						}
+
+						if (str1.length() > sub1.length()) {
+							sub1 += qpl::to_string(" [+", str1.length() - sub1.length(), " more]");
+						}
+						if (str2.length() > sub2.length()) {
+							sub2 += qpl::to_string(" [+", str2.length() - sub2.length(), " more]");
+						}
+
+						stream << qpl::to_string("...", sub1, "...\n");
+						stream << qpl::to_string("...", sub2, "...\n");
+
+						++found_ctr;
+
+						if (found_ctr >= found_max) {
+							stream << qpl::to_string("\ndisplaying maximum of ", found_max, " lines.");
+							break;
 						}
 					}
 				}
 			}
 
 			qpl::println("\ncontent differs: ");
-			qpl::println(stream.str());
+			auto str = stream.str();
+			auto sub = str.substr(0u, cfg::max_total_chars);
+			if (str.length() > sub.length()) {
+				sub += qpl::to_string("\n[+", str.length() - sub.length(), " more]");
+			}
+			qpl::println(str);
 		}
 
 		return false;
@@ -154,6 +188,13 @@ void check(std::string path_str1, std::string path_str2) {
 }
 
 int main(int argc, char** argv) try {
+
+	qpl::config config;
+	config.load("file_diff.cfg", ':');
+	cfg::max_lines = config.get<qpl::size>(0u);
+	cfg::max_line_chars = config.get<qpl::size>(1u);
+	cfg::max_total_chars = config.get<qpl::size>(2u);
+
 	std::vector<std::string> args(argc - 1);
 	for (int i = 1; i < argc; ++i) {
 		args[i - 1] = argv[i];
