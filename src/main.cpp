@@ -189,11 +189,13 @@ void check(std::string path_str1, std::string path_str2) {
 
 int main(int argc, char** argv) try {
 
-	qpl::config config;
-	config.load("file_diff.cfg", ':');
-	cfg::max_lines = config.get<qpl::size>(0u);
-	cfg::max_line_chars = config.get<qpl::size>(1u);
-	cfg::max_total_chars = config.get<qpl::size>(2u);
+	if (qpl::filesys::exists("file_diff.cfg")) {
+		qpl::config config;
+		config.load("file_diff.cfg", ':');
+		cfg::max_lines = config.get<qpl::size>(0u);
+		cfg::max_line_chars = config.get<qpl::size>(1u);
+		cfg::max_total_chars = config.get<qpl::size>(2u);
+	}
 
 	std::vector<std::string> args(argc - 1);
 	for (int i = 1; i < argc; ++i) {
